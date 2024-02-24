@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Drawing</title>
+    <style>
+        canvas {
+            border: 1px solid #FF0000;
+        }
+        #extractedText {
+            font-size: 50px; /* Adjust the font size as needed */
+        }
+    </style>
+</head>
+<body>
+    <h1>Canvas Drawing</h1>
+    <canvas id="drawingCanvas" width="800" height="400"></canvas>
+    <button onclick="saveDrawing()">Save Drawing</button>
+    <button onclick="clearDrawing()">Clear Drawing</button>
+    <button onclick="extractText()">Extract Text</button>
+    <div id="extractedText"></div>
+
+    <script>
+        const drawingCanvas = document.getElementById('drawingCanvas');
+        const drawingContext = drawingCanvas.getContext('2d');
+        let isDrawing = false;
+
+        // Set the background color of the drawing canvas to black
+        drawingCanvas.style.backgroundColor = '#000';
+
+        function startDrawing(e) {
+            isDrawing = true;
+            draw(e);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            drawingContext.beginPath(); // Reset the path to start a new drawing
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            drawingContext.lineWidth = 2;
+            drawingContext.lineCap = 'round';
+            drawingContext.strokeStyle = '#FFFFFF';
+
+            drawingContext.lineTo(e.clientX - drawingCanvas.offsetLeft, e.clientY - drawingCanvas.offsetTop);
+            drawingContext.stroke();
+            drawingContext.beginPath();
+            drawingContext.moveTo(e.clientX - drawingCanvas.offsetLeft, e.clientY - drawingCanvas.offsetTop);
+        }
+
+        function saveDrawing() {
+            const image = drawingCanvas.toDataURL('image/png');
+            const filename = 'drawing.png';  // Use a fixed filename for overwriting the previous image
+
+            // Send the drawing to the server to save it
+            fetch('/save_drawing', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ data: image }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Drawing saved successfully!');
+                }
+            });
+        }
+
+        function extractText() {
+            // Request the server to extract text from the saved image
+            fetch('/extract_text', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Extracted Text:', data.banglai_text);
+                    
+                    // Update the HTML content with the extracted text
+                    const extractedTextDiv = document.getElementById('extractedText');
+                    extractedTextDiv.textContent = data.banglai_text;
+                }
+            });
+        }
+
+        drawingCanvas.addEventListener('mousedown', startDrawing);
+        drawingCanvas.addEventListener('mousemove', draw);
+        drawingCanvas.addEventListener('mouseup', stopDrawing);
+        drawingCanvas.addEventListener('mouseout', stopDrawing);
+
+
+        function clearDrawing() {
+            drawingContext.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            console.log('Drawing cleared!'); // Log a message to the console
+        }
+    </script>
+</body>
+</html>

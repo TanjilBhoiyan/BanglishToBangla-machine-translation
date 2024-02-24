@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <title>Banglish ➜ বাংলা</title>
+    <link rel="icon" type="image/x-icon" href="অ.png">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Drawing</title>
+    <style>
+        * {
+        margin: 0;
+        padding: 0;
+        font-family:Poppins;
+        box-sizing: border-box;
+        }
+        body{
+            width: 100%;
+            min-height: 100vh; /* Corrected property */
+            background: linear-gradient(45deg, #010758, #490d61);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        canvas {
+            background-color: black;
+            border: 3px solid lightgreen;
+            border-radius: 10px;
+            cursor: crosshair;
+        }
+        h1{
+            font-size: 45px;
+            font-weight: 500;
+            margin-top: -10px;
+            margin-bottom: 50px;
+            color: #fff;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        h1 span.red{
+            color: #ff2963;
+        }
+        h1 span.green{
+            color: lightgreen;
+        }
+        button {
+            display: inline-block;
+        }
+        .button-container {
+            display: flex;
+            margin-top: 20px;
+        }
+        .extract {
+            background-color: transparent; /* Change background color */
+            color: lightgreen; /* Change text color */
+            border: 2px solid lightgreen; /* Add border with style */
+            border-radius: 30px; /* Add border radius */
+            padding: 10px 20px; /* Add padding */
+            font-size: 25px; /* Change font size */
+            font-weight: bold;
+            margin-top: 10px; /* Adjust margin */
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        .extract:hover{
+            background-color: lightgreen; /* Change background color */
+            color: black; /* Change text color */
+            border: 1px solid lightgreen; /* Add border with style */        
+        }
+        .clear {
+            background-color: transparent; /* Change background color */
+            color: darkgrey; /* Change text color */
+            border: 2px solid darkgrey; /* Remove border */
+            border-radius: 30px; /* Add border radius */
+            padding: 10px 20px; /* Add padding */
+            margin-right: 20px;
+            font-size: 25px; /* Change font size */
+            margin-top: 10px; /* Adjust margin */
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        .clear:hover{
+            background-color: darkgrey; /* Change background color */
+            color: black; /* Change text color */
+            border: 1px solid darkgrey; /* Add border with style */  
+        }
+        .output-container {
+            background-color: white;
+            margin-top: 20px;
+            border: 3px solid #ff2963;
+            border-radius: 10px;
+            padding: 10px;
+            width: 800px;
+            height: 100px;
+            position: relative;
+            overflow: hidden;
+            display: flex; /* Use flexbox */
+            align-items: center; /* Center vertically */
+            justify-content: center; /* Center horizontally */
+            cursor: text;
+        }
+        .output-container #extractedText {
+            font-size: 30px;
+            color: black;
+            margin-top: 20px;
+        }
+        .copy-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            padding: 2px 5px;
+            border: 1px solid black;
+            border-radius: 5px;
+            background-color: transparent;
+            color: #000;
+            cursor: pointer;
+        }
+        .copy-button:hover{
+            background-color: black; /* Change background color */
+            color: white; /* Change text color */
+            border: 1px solid black; /* Add border with style */ 
+        }
+        .popup-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 9999;
+            display: none; /* Initially hidden */
+        }
+    </style>
+</head>
+<body>
+    <h1><span class="red">Banglish </span> to <span class="green"> বাংলা</span> Converter</h1>
+    <canvas id="drawingCanvas" width="1500" height="300"></canvas>
+    <div class="button-container">
+        <button onclick="clearDrawing()" class="clear">Clear</button>
+        <button onclick="extractText()" class="extract">বাংলা</button>
+    </div>
+    <div class="output-container">
+        <div id="extractedText"></div>
+        <button onclick="copyText()" class="copy-button">Copy</button>
+    </div>
+    <div id="extractedText"></div>
+    <div id="popupMessage" class="popup-message">Text copied to clipboard!</div>
+
+    <script>
+        const drawingCanvas = document.getElementById('drawingCanvas');
+        const drawingContext = drawingCanvas.getContext('2d');
+        let isDrawing = false;
+
+        // Set the background color of the drawing canvas to black
+        drawingCanvas.style.backgroundColor = '#000';
+
+        function startDrawing(e) {
+            isDrawing = true;
+            draw(e);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            drawingContext.beginPath(); // Reset the path to start a new drawing
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            drawingContext.lineWidth = 2;
+            drawingContext.lineCap = 'round';
+            drawingContext.strokeStyle = '#FFFFFF';
+
+            drawingContext.lineTo(e.clientX - drawingCanvas.offsetLeft, e.clientY - drawingCanvas.offsetTop);
+            drawingContext.stroke();
+            drawingContext.beginPath();
+            drawingContext.moveTo(e.clientX - drawingCanvas.offsetLeft, e.clientY - drawingCanvas.offsetTop);
+        }
+
+        function extractText() {
+            // Save the drawing as an image first
+            const image = drawingCanvas.toDataURL('image/png');
+            const filename = 'drawing.png';  // Use a fixed filename for overwriting the previous image
+
+            // Request the server to extract text from the saved image
+            fetch('/extract_text', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ data: image }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Extracted Text:', data.banglai_text);
+                    
+                    // Update the HTML content with the extracted text
+                    const extractedTextDiv = document.getElementById('extractedText');
+                    extractedTextDiv.textContent = data.banglai_text;
+                }
+            });
+        }
+
+
+        drawingCanvas.addEventListener('mousedown', startDrawing);
+        drawingCanvas.addEventListener('mousemove', draw);
+        drawingCanvas.addEventListener('mouseup', stopDrawing);
+        drawingCanvas.addEventListener('mouseout', stopDrawing);
+
+        function clearDrawing() {
+            drawingContext.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            console.log('Drawing cleared!'); // Log a message to the console
+        }
+        function copyText() {
+            // Select the text inside the output container
+            const textToCopy = document.getElementById('extractedText').innerText;
+
+            // Create a temporary textarea element
+            const textarea = document.createElement('textarea');
+            textarea.value = textToCopy;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'absolute';
+            textarea.style.left = '-9999px'; // Move it off-screen
+            document.body.appendChild(textarea);
+
+            // Select and copy the text
+            textarea.select();
+            document.execCommand('copy');
+
+            // Remove the textarea from the document
+            document.body.removeChild(textarea);
+
+            // Change the button text to indicate copying
+            const copyButton = document.querySelector('.copy-button');
+            copyButton.textContent = 'Copied ✓';
+
+            // Revert back to 'Copy' after 1 second
+            setTimeout(() => {
+                copyButton.textContent = 'Copy';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
